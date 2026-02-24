@@ -79,7 +79,7 @@ if page == "Dashboard":
         # Display the styled table
         st.dataframe(styled_df, use_container_width=True)
         
-        st.info("💡 Rows highlighted in red require immediate safety testing.")
+        st.info("Rows highlighted in red require immediate safety testing.")
     else:
         st.warning("No data found.")
 
@@ -178,6 +178,7 @@ footer_text = f"""
 </div>
 """
 st.markdown(footer_text, unsafe_allow_html=True)
+
 
 
 
