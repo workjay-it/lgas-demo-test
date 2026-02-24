@@ -66,7 +66,7 @@ if page == "Dashboard":
         def highlight_overdue(row):
             # Hex #1E1E1E is a soft "Onyx" grey close to black
             if row["Next_Test_Due"].date() <= today:
-                return ['background-color: #303030; color: white; font-weight: bold'] * len(row)
+                return ['background-color: #303030; color: white; font-weight: italic'] * len(row)
             return [''] * len(row)
 
         styled_df = df.style.apply(highlight_overdue, axis=1)
@@ -77,7 +77,7 @@ if page == "Dashboard":
         st.dataframe(styled_df, use_container_width=True, hide_index=True)
         
         # 5. Footer Note
-        st.caption("Rows in Grey indicate cylinders that have exceeded their safety test date.")
+        st.caption("**Rows in Grey indicate cylinders that have exceeded their safety test date.")
     else:
         st.warning("No data found.")
 # 4. CYLINDER FINDER (Hardware Scanner Friendly)
@@ -174,6 +174,7 @@ footer_text = f"""
 </div>
 """
 st.markdown(footer_text, unsafe_allow_html=True)
+
 
 
 
