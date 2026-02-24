@@ -51,49 +51,37 @@ if page == "Dashboard":
     st.title("Live Fleet Dashboard")
     
     if not df.empty:
-        # Get today's date in IST for comparison
-        ist = pytz.timezone('Asia/Kolkata')
-        today_dt = datetime.now(ist).date()
-
-        # Metrics
+        # Metrics at the top
         col1, col2, col3 = st.columns(3)
         col1.metric("Total Units", len(df))
         
-        # Live calculation of overdue (more accurate than the DB column)
-        live_overdue_count = len(df[df["Next_Test_Due"].dt.date <= today_dt])
-        col2.metric("Overdue (Test)", live_overdue_count, delta_color="inverse")
+        ist = pytz.timezone('Asia/Kolkata')
+        today = datetime.now(ist).date()
+        overdue_count = len(df[df["Next_Test_Due"].dt.date <= today])
+        col2.metric("Overdue (Test)", overdue_count)
         col3.metric("Empty Stock", len(df[df["Status"] == "Empty"]))
 
-        st.subheader("Inventory Status")
-
-        # Function to apply row styling
+        # Apply red highlighting to overdue rows
         def highlight_overdue(row):
-            # If the test date is today or in the past, turn red
-            if row["Next_Test_Due"].date() <= today_dt:
+            if row["Next_Test_Due"].date() <= today:
                 return ['background-color: #ff4b4b; color: white'] * len(row)
             return [''] * len(row)
 
-        # Apply the style to the dataframe
-        styled_df = df.sort_values("Next_Test_Due").style.apply(highlight_overdue, axis=1)
+        styled_df = df.style.apply(highlight_overdue, axis=1)
 
-        # Display the styled table
-        st.dataframe(styled_df, use_container_width=True)
-        
-        st.info("Rows highlighted in red require immediate safety testing.")
-    else:
-        st.warning("No data found.")
+        st.subheader("Inventory Overview")
+        # hide_index=True is the key here
+        st.dataframe(styled_df, use_container_width=True, hide_index=True)
 
 # 4. CYLINDER FINDER (Hardware Scanner Friendly)
 elif page == "Cylinder Finder":
     st.title("🔍 Advanced Cylinder Search")
-    st.info("💡 Scanner Ready: Click the 'Search ID' box and scan the barcode.")
     
     colA, colB, colC = st.columns(3)
     with colA:
-        # Added .strip().upper() so the scanner doesn't fail on lowercase or extra spaces
-        s_id = st.text_input("Search ID", placeholder="Scan or Type...").strip().upper()
+        s_id = st.text_input("Search ID").strip().upper()
     with colB:
-        s_name = st.text_input("Search Customer", placeholder="Customer Name")
+        s_name = st.text_input("Search Customer")
     with colC:
         s_status = st.selectbox("Filter Status", ["All", "Full", "Empty", "Damaged"])
 
@@ -106,7 +94,8 @@ elif page == "Cylinder Finder":
         f_df = f_df[f_df["Status"] == s_status]
 
     st.subheader(f"Results Found: {len(f_df)}")
-    st.dataframe(f_df, use_container_width=True)
+    # hide_index=True removes the 0,1,2,3... column here as well
+    st.dataframe(f_df, use_container_width=True, hide_index=True)
 
 # 5. RETURN & PENALTY LOG
 elif page == "Return & Penalty Log":
@@ -178,6 +167,7 @@ footer_text = f"""
 </div>
 """
 st.markdown(footer_text, unsafe_allow_html=True)
+
 
 
 
