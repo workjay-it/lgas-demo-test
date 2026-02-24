@@ -82,18 +82,33 @@ if page == "Dashboard":
         st.warning("No data found.")
 
 # 4. CYLINDER FINDER (Hardware Scanner Friendly)
-# --- CYLINDER FINDER ---
 elif page == "Cylinder Finder":
     st.title("🔍 Advanced Cylinder Search")
     
-    # 1. Search Inputs
-    colA, colB, colC = st.columns(3)
+    # --- A. Initialize Session State (This keeps the boxes empty until scanned) ---
+    if "s_id_key" not in st.session_state:
+        st.session_state.s_id_key = ""
+    if "s_name_key" not in st.session_state:
+        st.session_state.s_name_key = ""
+
+    # --- B. The Reset Logic ---
+    def reset_search():
+        st.session_state.s_id_key = ""
+        st.session_state.s_name_key = ""
+
+    # 1. Search Inputs (Added 'key' to link them to the reset button)
+    colA, colB, colC, colD = st.columns([2, 2, 2, 1]) # Added a 4th column for the button
     with colA:
-        s_id = st.text_input("Search ID (Scan Now)").strip().upper()
+        s_id = st.text_input("Search ID (Scan Now)", key="s_id_key").strip().upper()
     with colB:
-        s_name = st.text_input("Search Customer").strip()
+        s_name = st.text_input("Search Customer", key="s_name_key").strip()
     with colC:
         s_status = st.selectbox("Filter Status", ["All", "Full", "Empty", "Damaged"])
+    with colD:
+        st.write(" ") # Padding to align with input boxes
+        if st.button("🗑️ Reset"):
+            reset_search()
+            st.rerun()
 
     # 2. Date Setup
     ist = pytz.timezone('Asia/Kolkata')
@@ -109,7 +124,6 @@ elif page == "Cylinder Finder":
         f_df = f_df[f_df["Status"] == s_status]
 
     # 4. FIXED ALERT LOGIC (Only triggers for ID or Customer searches)
-    # We only show the Alert/Success messages if the user typed something in ID or Name
     if s_id or s_name:
         if not f_df.empty:
             overdue_list = f_df[f_df["Next_Test_Due"].dt.date <= today]
@@ -126,7 +140,7 @@ elif page == "Cylinder Finder":
         else:
             st.warning("No matching cylinders found.")
 
-    # 5. Apply Dark-Grey Styling (Always active so you can still see them in the list)
+    # 5. Apply Dark-Grey Styling
     def highlight_overdue(row):
         if row["Next_Test_Due"].date() <= today:
             return ['background-color: #1E1E1E; color: #E0E0E0; font-weight: bold'] * len(row)
@@ -208,6 +222,7 @@ footer_text = f"""
 </div>
 """
 st.markdown(footer_text, unsafe_allow_html=True)
+
 
 
 
