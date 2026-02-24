@@ -64,7 +64,7 @@ if page == "Dashboard":
         # Apply red highlighting to overdue rows
         def highlight_overdue(row):
             if row["Next_Test_Due"].date() <= today:
-                return ['background-color: #ff4b4b; color: white'] * len(row)
+                return ['background-color: #d3d3d3; color: white'] * len(row)
             return [''] * len(row)
 
         styled_df = df.style.apply(highlight_overdue, axis=1)
