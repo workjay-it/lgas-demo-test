@@ -149,7 +149,7 @@ elif page == "Add New Cylinder":
                     conn.table("cylinders").insert(payload).execute()
                     
                     # FIXED: Success message with delay
-                    st.success(f"Cylinder {c_id} ({cap_val}kg) added to cloud!")
+                    st.success(f"Cylinder {c_id} ({cap_val}kg) added!")
                     time.sleep(2)
                     st.cache_data.clear()
                     st.rerun()
@@ -170,6 +170,7 @@ footer_text = f"""
 </div>
 """
 st.markdown(footer_text, unsafe_allow_html=True)
+
 
 
 
