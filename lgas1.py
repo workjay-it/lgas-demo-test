@@ -1,7 +1,8 @@
 import streamlit as st
 import pandas as pd
-from datetime import datetime, timedelta
-import pytz  # Handles accurate IST time conversion
+from datetime import datetime
+import pytz
+import time  # New import for the delay
 from st_supabase_connection import SupabaseConnection
 
 # ────────────────────────────────────────────────
@@ -21,7 +22,7 @@ def load_supabase_data():
         response = conn.table("cylinders").select("*").execute()
         df = pd.DataFrame(response.data)
         
-        # FIX: Capture current time in IST (Asia/Kolkata)
+        # Capture current time in IST
         ist = pytz.timezone('Asia/Kolkata')
         ist_now = datetime.now(ist)
         st.session_state["last_refresh"] = ist_now.strftime("%I:%M:%S %p")
@@ -45,7 +46,6 @@ df = load_supabase_data()
 st.sidebar.title("Gas Cylinder Management 2026")
 st.sidebar.info("Operational Hub - Hyderabad")
 
-# Manual Refresh Button
 if st.sidebar.button("🔄 Refresh Data Now"):
     st.cache_data.clear()
     st.rerun()
@@ -69,11 +69,9 @@ if page == "Dashboard":
         
         st.subheader("Full Inventory Overview")
         st.dataframe(df.sort_values("Next_Test_Due"), use_container_width=True)
-    else:
-        st.warning("No data found. Please add a cylinder to begin.")
 
 # ────────────────────────────────────────────────
-# 5. ADVANCED CYLINDER FINDER
+# 5. CYLINDER FINDER (With Search Notification)
 # ────────────────────────────────────────────────
 elif page == "Cylinder Finder":
     st.title("🔍 Advanced Cylinder Search")
@@ -94,11 +92,14 @@ elif page == "Cylinder Finder":
     if s_status != "All":
         f_df = f_df[f_df["Status"] == s_status]
 
+    if s_id or s_name or s_status != "All":
+        st.toast(f"Filters applied. Found {len(f_df)} matches.", icon="🔍")
+
     st.subheader(f"Results Found: {len(f_df)}")
     st.dataframe(f_df, use_container_width=True)
 
 # ────────────────────────────────────────────────
-# 6. RETURN & PENALTY LOG
+# 6. RETURN & PENALTY LOG (With 2-Second Delay)
 # ────────────────────────────────────────────────
 elif page == "Return & Penalty Log":
     st.title("Cylinder Return Audit")
@@ -110,14 +111,17 @@ elif page == "Return & Penalty Log":
                 new_status = "Empty" if condition == "Good" else "Damaged"
                 try:
                     conn.table("cylinders").update({"Status": new_status, "Fill_Percent": 0}).eq("Cylinder_ID", target_id).execute()
-                    st.success(f"Cylinder {target_id} updated successfully!")
+                    
+                    # FIXED: Success message with delay
+                    st.success(f"Cylinder {target_id} processed as {new_status}!")
+                    time.sleep(2) 
                     st.cache_data.clear()
                     st.rerun()
                 except Exception as e:
                     st.error(f"Update failed: {e}")
 
 # ────────────────────────────────────────────────
-# 7. ADD NEW CYLINDER
+# 7. ADD NEW CYLINDER (With 2-Second Delay)
 # ────────────────────────────────────────────────
 elif page == "Add New Cylinder":
     st.title("Register New Stock")
@@ -125,13 +129,7 @@ elif page == "Add New Cylinder":
         c_id = st.text_input("New Cylinder ID")
         cust = st.text_input("Customer Name")
         pin = st.text_input("Location PIN (Numbers Only)", max_chars=6)
-        
-        cap_val = st.selectbox(
-            "Cylinder Capacity (kg)", 
-            options=[5.0, 10.0, 14.2, 19.0, 47.5],
-            index=2, # Default to 14.2
-            format_func=lambda x: f"{x} kg"
-        )
+        cap_val = st.selectbox("Capacity (kg)", options=[5.0, 10.0, 14.2, 19.0, 47.5], index=2)
         
         if st.form_submit_button("Add Cylinder"):
             if not c_id:
@@ -139,23 +137,20 @@ elif page == "Add New Cylinder":
             else:
                 today = datetime.now().date()
                 next_due = today + pd.Timedelta(days=1825)
-                
                 payload = {
-                    "Cylinder_ID": str(c_id),
-                    "Customer_Name": str(cust),
+                    "Cylinder_ID": str(c_id), "Customer_Name": str(cust),
                     "Location_PIN": int(pin) if pin.isdigit() else 0,
-                    "Capacity_kg": float(cap_val),
-                    "Fill_Percent": 100,
-                    "Status": "Full",
-                    "Last_Fill_Date": str(today),
-                    "Last_Test_Date": str(today),
-                    "Next_Test_Due": str(next_due),
+                    "Capacity_kg": float(cap_val), "Fill_Percent": 100,
+                    "Status": "Full", "Last_Fill_Date": str(today),
+                    "Last_Test_Date": str(today), "Next_Test_Due": str(next_due),
                     "Overdue": False
                 }
-                
                 try:
                     conn.table("cylinders").insert(payload).execute()
-                    st.success(f"Cylinder {c_id} ({cap_val}kg) registered!")
+                    
+                    # FIXED: Success message with delay
+                    st.success(f"Cylinder {c_id} ({cap_val}kg) added to cloud!")
+                    time.sleep(2)
                     st.cache_data.clear()
                     st.rerun()
                 except Exception as e:
@@ -169,13 +164,12 @@ last_time = st.session_state["last_refresh"]
 footer_text = f"""
 <div style="text-align: center; color: grey; font-size: 0.85em; font-family: sans-serif;">
     <p><b>Project:</b> Domestic Gas Project | <b>Developed by:</b> KWS </p>
-    <p><b>Deployed by</b> Streamlit </p>
-    <p style="color: #007bff;"><b>Last Refresh:</b> {last_time} IST</p>
-    <p>© Cylinder Management System v1.2</p>
+    <p><b>Softwares:</b> Streamlit, Supabase, Python, GitHub</p>
+    <p style="color: #007bff;"><b>Last Cloud Refresh:</b> {last_time} IST</p>
+    <p>© 2026 LeoGas Management System • v.1.4</p>
 </div>
 """
 st.markdown(footer_text, unsafe_allow_html=True)
-
 
 
 
