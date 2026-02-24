@@ -124,7 +124,7 @@ elif page == "Return & Penalty Log":
 # 7. ADD NEW CYLINDER (With 2-Second Delay)
 # ────────────────────────────────────────────────
 elif page == "Add New Cylinder":
-    st.title("Register New Stock")
+    st.title("Register Cyclinder")
     with st.form("new_entry_form"):
         c_id = st.text_input("New Cylinder ID")
         cust = st.text_input("Customer Name")
@@ -170,6 +170,7 @@ footer_text = f"""
 </div>
 """
 st.markdown(footer_text, unsafe_allow_html=True)
+
 
 
 
