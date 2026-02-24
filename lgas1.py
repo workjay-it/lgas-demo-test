@@ -91,7 +91,7 @@ elif page == "Cylinder Finder":
     with colA:
         s_id = st.text_input("Search ID (Scan Now)").strip().upper()
     with colB:
-        s_name = st.text_input("Search Customer")
+        s_name = st.text_input("Search Customer").strip()
     with colC:
         s_status = st.selectbox("Filter Status", ["All", "Full", "Empty", "Damaged"])
 
@@ -99,7 +99,7 @@ elif page == "Cylinder Finder":
     ist = pytz.timezone('Asia/Kolkata')
     today = datetime.now(ist).date()
 
-    # 3. Filtering Logic (Run this first to check for alerts)
+    # 3. Filtering Logic
     f_df = df.copy()
     if s_id:
         f_df = f_df[f_df["Cylinder_ID"].str.upper().str.contains(s_id, na=False)]
@@ -108,25 +108,25 @@ elif page == "Cylinder Finder":
     if s_status != "All":
         f_df = f_df[f_df["Status"] == s_status]
 
-    # 4. Smart Alert Logic
-    if not f_df.empty:
-        # Check if any cylinders in the current filtered list are overdue
-        overdue_list = f_df[f_df["Next_Test_Due"].dt.date <= today]
-        num_overdue = len(overdue_list)
+    # 4. FIXED ALERT LOGIC (Only triggers for ID or Customer searches)
+    # We only show the Alert/Success messages if the user typed something in ID or Name
+    if s_id or s_name:
+        if not f_df.empty:
+            overdue_list = f_df[f_df["Next_Test_Due"].dt.date <= today]
+            num_overdue = len(overdue_list)
 
-        if num_overdue > 0:
-            if s_id and num_overdue == 1:
-                # If searching a specific ID, show specific date
-                due_date = overdue_list.iloc[0]["Next_Test_Due"].date()
-                st.error(f"⚠️ SAFETY ALERT: Cylinder {s_id} is OVERDUE! (Due: {due_date})")
+            if num_overdue > 0:
+                if s_id and num_overdue == 1:
+                    due_date = overdue_list.iloc[0]["Next_Test_Due"].date()
+                    st.error(f"⚠️ SAFETY ALERT: Cylinder {s_id} is OVERDUE! (Due: {due_date})")
+                else:
+                    st.error(f"⚠️ ATTENTION: Found {num_overdue} overdue cylinder(s) for '{s_id if s_id else s_name}'")
             else:
-                # If searching by customer, show a summary alert
-                st.error(f"⚠️ ATTENTION: {num_overdue} overdue cylinder(s) found for this search!")
-                st.toast(f"Found {num_overdue} overdue units", icon="🚨")
-        elif s_id or s_name:
-            st.success("✅ All cylinders in this view are safe for use.")
+                st.success(f"✅ No overdue cylinders found for this search.")
+        else:
+            st.warning("No matching cylinders found.")
 
-    # 5. Apply Dark-Grey Styling & Display
+    # 5. Apply Dark-Grey Styling (Always active so you can still see them in the list)
     def highlight_overdue(row):
         if row["Next_Test_Due"].date() <= today:
             return ['background-color: #1E1E1E; color: #E0E0E0; font-weight: bold'] * len(row)
@@ -136,9 +136,6 @@ elif page == "Cylinder Finder":
 
     st.subheader(f"Results Found: {len(f_df)}")
     st.dataframe(styled_f_df, use_container_width=True, hide_index=True)
-    
-    if not f_df.empty:
-        st.caption("⚫ **Note:** Dark grey rows indicate overdue cylinders.")
 
 
 # 5. RETURN & PENALTY LOG
@@ -211,6 +208,7 @@ footer_text = f"""
 </div>
 """
 st.markdown(footer_text, unsafe_allow_html=True)
+
 
 
 
