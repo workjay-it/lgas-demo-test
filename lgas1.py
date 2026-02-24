@@ -85,19 +85,21 @@ if page == "Dashboard":
 elif page == "Cylinder Finder":
     st.title("Advanced Cylinder Search")
 
-    # 1. DEFINE THE CALLBACK (This runs BEFORE the widget locks the state)
+    # 1. DEFINE THE CALLBACK
     def clear_callback():
         st.session_state["s_id_key"] = ""
         st.session_state["s_name_key"] = ""
 
-    # 2. Initialize keys if they don't exist
+    # 2. Initialize keys safely
     if "s_id_key" not in st.session_state:
         st.session_state["s_id_key"] = ""
     if "s_name_key" not in st.session_state:
         st.session_state["s_name_key"] = ""
 
-    # 3. Search Inputs
-    colA, colB, colC, colD = st.columns([2, 2, 2, 1])
+    # 3. Search Inputs with Vertical Alignment
+    # We use vertical_alignment="bottom" to line the button up with the boxes
+    colA, colB, colC, colD = st.columns([3, 3, 2, 1], vertical_alignment="bottom")
+    
     with colA:
         s_id = st.text_input("Search ID (Scan Now)", key="s_id_key").strip().upper()
     with colB:
@@ -105,9 +107,8 @@ elif page == "Cylinder Finder":
     with colC:
         s_status = st.selectbox("Filter Status", ["All", "Full", "Empty", "Damaged"])
     with colD:
-        st.write(" ") # Alignment spacer
-        # We use on_click here. This avoids the StreamlitAPIException error.
-        st.button("Reset", on_click=clear_callback)
+        # The button will now sit perfectly level with the input fields
+        st.button("Reset", on_click=clear_callback, use_container_width=True)
 
     # 4. Date Setup
     ist = pytz.timezone('Asia/Kolkata')
@@ -220,6 +221,7 @@ footer_text = f"""
 </div>
 """
 st.markdown(footer_text, unsafe_allow_html=True)
+
 
 
 
