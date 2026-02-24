@@ -60,7 +60,7 @@ if page == "Dashboard":
         col1.metric("Total Units", len(df))
         overdue_count = len(df[df["Next_Test_Due"].dt.date <= today])
         col2.metric("Overdue (Test)", overdue_count)
-        col3.metric("Empty Stock", len(df[df["Status"] == "Empty"])
+        col3.metric("Empty Stock", len(df[df["Status"] == "Empty"]))
 
         # 3. Style Function (Dark Grey / Near Black)
         def highlight_overdue(row):
@@ -174,6 +174,7 @@ footer_text = f"""
 </div>
 """
 st.markdown(footer_text, unsafe_allow_html=True)
+
 
 
 
