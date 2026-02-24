@@ -66,7 +66,7 @@ if page == "Dashboard":
         def highlight_overdue(row):
             # Hex #1E1E1E is a soft "Onyx" grey close to black
             if row["Next_Test_Due"].date() <= today:
-                return ['background-color: #1E1E1E; color: white; font-weight: bold'] * len(row)
+                return ['background-color: #303030; color: white; font-weight: bold'] * len(row)
             return [''] * len(row)
 
         styled_df = df.style.apply(highlight_overdue, axis=1)
@@ -174,6 +174,7 @@ footer_text = f"""
 </div>
 """
 st.markdown(footer_text, unsafe_allow_html=True)
+
 
 
 
