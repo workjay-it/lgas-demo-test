@@ -84,46 +84,50 @@ if page == "Dashboard":
 # 4. CYLINDER FINDER (Hardware Scanner Friendly)
 elif page == "Cylinder Finder":
     st.title("🔍 Advanced Cylinder Search")
-    st.info("Scanner Ready: Click the Search ID box and scan the barcode.")
     
     # 1. Search Inputs
     colA, colB, colC = st.columns(3)
     with colA:
-        s_id = st.text_input("Search ID").strip().upper()
+        s_id = st.text_input("Search ID (Scan Now)").strip().upper()
     with colB:
         s_name = st.text_input("Search Customer")
     with colC:
         s_status = st.selectbox("Filter Status", ["All", "Full", "Empty", "Damaged"])
 
-    # 2. Filtering Logic
-    f_df = df.copy()
-    if s_id:
-        f_df = f_df[f_df["Cylinder_ID"].str.upper().str.contains(s_id, na=False)]
-    if s_name:
-        f_df = f_df[f_df["Customer_Name"].str.contains(s_name, case=False, na=False)]
-    if s_status != "All":
-        f_df = f_df[f_df["Status"] == s_status]
-
-    # 3. Apply Dark-Grey Styling to Filtered Results
+    # 2. Alert Logic (Triggers immediately when an ID is scanned)
     ist = pytz.timezone('Asia/Kolkata')
     today = datetime.now(ist).date()
 
+    if s_id:
+        # Look for the exact cylinder scanned
+        match = df[df["Cylinder_ID"].str.upper() == s_id]
+        
+        if not match.empty:
+            test_due = match.iloc[0]["Next_Test_Due"].date()
+            if test_due <= today:
+                # This is your Pop-up Alert
+                st.error(f"SAFETY ALERT: Cylinder {s_id} is OVERDUE for testing! (Due: {test_due})")
+                st.toast("Overdue Alert!", icon="🚨") # Optional mini-toast notification
+            else:
+                st.success(f"✅ Cylinder {s_id} is safe for use.")
+
+    # 3. Filtering and Table Display
+    f_df = df.copy()
+    if s_id:
+        f_df = f_df[f_df["Cylinder_ID"].str.upper().str.contains(s_id, na=False)]
+    
+    # ... (rest of your filtering for s_name and s_status) ...
+
+    # 4. Apply Dark-Grey Styling
     def highlight_overdue(row):
-        # Hex #1E1E1E (Onyx) for consistency with Dashboard
         if row["Next_Test_Due"].date() <= today:
             return ['background-color: #1E1E1E; color: #E0E0E0; font-weight: bold'] * len(row)
         return [''] * len(row)
 
     styled_f_df = f_df.style.apply(highlight_overdue, axis=1)
 
-    # 4. Display Results
     st.subheader(f"Results Found: {len(f_df)}")
     st.dataframe(styled_f_df, use_container_width=True, hide_index=True)
-    
-    # 5. Note for clarity
-    if not f_df.empty:
-        st.caption("**Grey Rows indicate cylinders that have exceeded their safety test date.")
-
 # 5. RETURN & PENALTY LOG
 elif page == "Return & Penalty Log":
     st.title("Cylinder Return Audit")
@@ -194,6 +198,7 @@ footer_text = f"""
 </div>
 """
 st.markdown(footer_text, unsafe_allow_html=True)
+
 
 
 
