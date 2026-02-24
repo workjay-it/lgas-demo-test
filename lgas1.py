@@ -82,38 +82,38 @@ if page == "Dashboard":
         st.warning("No data found.")
 
 # 4. CYLINDER FINDER (Hardware Scanner Friendly)
-# --- CYLINDER FINDER ---
 elif page == "Cylinder Finder":
-    st.title("🔍 Advanced Cylinder Search")
-    
-    # 1. Initialize keys safely
-    if "s_id_key" not in st.session_state:
-        st.session_state.s_id_key = ""
-    if "s_name_key" not in st.session_state:
-        st.session_state.s_name_key = ""
+    st.title("Advanced Cylinder Search")
 
-    # 2. Search Inputs
+    # 1. DEFINE THE CALLBACK (This runs BEFORE the widget locks the state)
+    def clear_callback():
+        st.session_state["s_id_key"] = ""
+        st.session_state["s_name_key"] = ""
+
+    # 2. Initialize keys if they don't exist
+    if "s_id_key" not in st.session_state:
+        st.session_state["s_id_key"] = ""
+    if "s_name_key" not in st.session_state:
+        st.session_state["s_name_key"] = ""
+
+    # 3. Search Inputs
     colA, colB, colC, colD = st.columns([2, 2, 2, 1])
     with colA:
-        # We use the key directly here
         s_id = st.text_input("Search ID (Scan Now)", key="s_id_key").strip().upper()
     with colB:
         s_name = st.text_input("Search Customer", key="s_name_key").strip()
     with colC:
         s_status = st.selectbox("Filter Status", ["All", "Full", "Empty", "Damaged"])
     with colD:
-        st.write(" ") # Alignment padding
-        # INSTEAD OF CALLING A FUNCTION, WE USE A CALLBACK TO RESET
-        if st.button("🗑️ Reset"):
-            st.session_state.s_id_key = ""
-            st.session_state.s_name_key = ""
-            st.rerun()
+        st.write(" ") # Alignment spacer
+        # We use on_click here. This avoids the StreamlitAPIException error.
+        st.button("Reset", on_click=clear_callback)
 
-    # 3. Date Setup
+    # 4. Date Setup
     ist = pytz.timezone('Asia/Kolkata')
     today = datetime.now(ist).date()
 
-    # 4. Filtering Logic (Using the values captured from the widgets)
+    # 5. Filtering Logic
     f_df = df.copy()
     if s_id:
         f_df = f_df[f_df["Cylinder_ID"].str.upper().str.contains(s_id, na=False)]
@@ -122,7 +122,7 @@ elif page == "Cylinder Finder":
     if s_status != "All":
         f_df = f_df[f_df["Status"] == s_status]
 
-    # 5. Alert Logic
+    # 6. Alert Logic (Only for ID or Name search)
     if s_id or s_name:
         if not f_df.empty:
             overdue_list = f_df[f_df["Next_Test_Due"].dt.date <= today]
@@ -138,7 +138,7 @@ elif page == "Cylinder Finder":
         else:
             st.warning("No matching cylinders found.")
 
-    # 6. Apply Dark-Grey Styling & Display
+    # 7. Apply Dark-Grey Styling
     def highlight_overdue(row):
         if row["Next_Test_Due"].date() <= today:
             return ['background-color: #1E1E1E; color: #E0E0E0; font-weight: bold'] * len(row)
@@ -148,7 +148,7 @@ elif page == "Cylinder Finder":
 
     st.subheader(f"Results Found: {len(f_df)}")
     st.dataframe(styled_f_df, use_container_width=True, hide_index=True)
-
+    
 
 # 5. RETURN & PENALTY LOG
 elif page == "Return & Penalty Log":
@@ -220,6 +220,7 @@ footer_text = f"""
 </div>
 """
 st.markdown(footer_text, unsafe_allow_html=True)
+
 
 
 
