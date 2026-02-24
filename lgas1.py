@@ -210,7 +210,7 @@ elif page == "Add New Cylinder":
                 except Exception as e:
                     st.error(f"Database Error: {e}")
 
-# 7. FOOTER
+# 7. FOOTER #JCN
 st.markdown("---")
 last_time = st.session_state["last_refresh"]
 footer_text = f"""
@@ -221,6 +221,7 @@ footer_text = f"""
 </div>
 """
 st.markdown(footer_text, unsafe_allow_html=True)
+
 
 
 
