@@ -49,17 +49,39 @@ page = st.sidebar.selectbox(
 # 3. DASHBOARD PAGE
 if page == "Dashboard":
     st.title("Live Fleet Dashboard")
+    
     if not df.empty:
+        # Get today's date in IST for comparison
+        ist = pytz.timezone('Asia/Kolkata')
+        today_dt = datetime.now(ist).date()
+
+        # Metrics
         col1, col2, col3 = st.columns(3)
         col1.metric("Total Units", len(df))
-        overdue_count = df["Overdue"].sum() if "Overdue" in df.columns else 0
-        col2.metric("Overdue (Test)", overdue_count)
-        col3.metric("Empty Stock", len(df[df["Status"] == "Empty"]))
         
-        st.subheader("Full Inventory Overview")
-        st.dataframe(df.sort_values("Next_Test_Due"), use_container_width=True)
+        # Live calculation of overdue (more accurate than the DB column)
+        live_overdue_count = len(df[df["Next_Test_Due"].dt.date <= today_dt])
+        col2.metric("Overdue (Test)", live_overdue_count, delta_color="inverse")
+        col3.metric("Empty Stock", len(df[df["Status"] == "Empty"]))
+
+        st.subheader("Inventory Status")
+
+        # Function to apply row styling
+        def highlight_overdue(row):
+            # If the test date is today or in the past, turn red
+            if row["Next_Test_Due"].date() <= today_dt:
+                return ['background-color: #ff4b4b; color: white'] * len(row)
+            return [''] * len(row)
+
+        # Apply the style to the dataframe
+        styled_df = df.sort_values("Next_Test_Due").style.apply(highlight_overdue, axis=1)
+
+        # Display the styled table
+        st.dataframe(styled_df, use_container_width=True)
+        
+        st.info("💡 Rows highlighted in red require immediate safety testing.")
     else:
-        st.warning("No data found. Please add a cylinder to begin.")
+        st.warning("No data found.")
 
 # 4. CYLINDER FINDER (Hardware Scanner Friendly)
 elif page == "Cylinder Finder":
@@ -157,6 +179,7 @@ footer_text = f"""
 </div>
 """
 st.markdown(footer_text, unsafe_allow_html=True)
+
 
 
 
