@@ -51,28 +51,35 @@ if page == "Dashboard":
     st.title("Live Fleet Dashboard")
     
     if not df.empty:
-        # Metrics at the top
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Total Units", len(df))
-        
+        # 1. Setup Dates
         ist = pytz.timezone('Asia/Kolkata')
         today = datetime.now(ist).date()
+
+        # 2. Metrics
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Total Units", len(df))
         overdue_count = len(df[df["Next_Test_Due"].dt.date <= today])
         col2.metric("Overdue (Test)", overdue_count)
-        col3.metric("Empty Stock", len(df[df["Status"] == "Empty"]))
+        col3.metric("Empty Stock", len(df[df["Status"] == "Empty"])
 
-        # Apply red highlighting to overdue rows
+        # 3. Style Function (Dark Grey / Near Black)
         def highlight_overdue(row):
+            # Hex #1E1E1E is a soft "Onyx" grey close to black
             if row["Next_Test_Due"].date() <= today:
-                return ['background-color: #373737; color: white'] * len(row)
+                return ['background-color: #1E1E1E; color: white; font-weight: bold'] * len(row)
             return [''] * len(row)
 
         styled_df = df.style.apply(highlight_overdue, axis=1)
 
         st.subheader("Inventory Overview")
-        # hide_index=True is the key here
+        
+        # 4. Display with Hidden Index
         st.dataframe(styled_df, use_container_width=True, hide_index=True)
-
+        
+        # 5. Footer Note
+        st.caption("Rows in Grey indicate cylinders that have exceeded their safety test date.")
+    else:
+        st.warning("No data found.")
 # 4. CYLINDER FINDER (Hardware Scanner Friendly)
 elif page == "Cylinder Finder":
     st.title("🔍 Advanced Cylinder Search")
@@ -167,6 +174,7 @@ footer_text = f"""
 </div>
 """
 st.markdown(footer_text, unsafe_allow_html=True)
+
 
 
 
