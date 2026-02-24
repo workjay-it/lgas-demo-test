@@ -34,8 +34,8 @@ def load_supabase_data():
 df = load_supabase_data()
 
 # 2. SIDEBAR NAVIGATION
-st.sidebar.title("LeoGas Management 2026")
-st.sidebar.info("Operational Hub - Hyderabad")
+st.sidebar.title("Cylinder Management")
+st.sidebar.info("Operations - Testing")
 
 if st.sidebar.button("🔄 Refresh Data Now"):
     st.cache_data.clear()
@@ -107,7 +107,7 @@ elif page == "Return & Penalty Log":
 
 # 6. ADD NEW CYLINDER (Hardware Scanner Friendly)
 elif page == "Add New Cylinder":
-    st.title("Register New Stock")
+    st.title("Register Cylinder")
     
     # clear_on_submit=True is critical for scanners so you don't have to delete the old ID manually
     with st.form("new_entry_form", clear_on_submit=True):
@@ -157,6 +157,7 @@ footer_text = f"""
 </div>
 """
 st.markdown(footer_text, unsafe_allow_html=True)
+
 
 
 
