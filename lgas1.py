@@ -154,98 +154,75 @@ elif page == "Cylinder Finder":
 
 
 #5a. BULK OPERATIONS (For High Volume 3,000+ Units) ---
-# --- 5. BULK OPERATIONS (Final Integrated Version) ---
+# --- 5. BULK OPERATIONS (Final Dual-Table Version) ---
 elif page == "Bulk Operations":
-    st.title("Bulk Management & Progress")
-    st.markdown("Track batch completion and perform high-volume updates.")
+    st.title("🚛 Bulk Management & Progress")
 
-    # Initialize session state for the text area if it doesn't exist
+    # 1. TABLE SWITCHER
+    # Set to "TEST_cylinders" for your 3,000 unit testing, "cylinders" for live ops
+    TARGET_TABLE = "TEST_cylinders" 
+    
+    st.info(f"📍 Database Target: `{TARGET_TABLE}`")
+    
     if "bulk_ids_val" not in st.session_state:
         st.session_state.bulk_ids_val = ""
 
-    # 1. BATCH LOOKUP & PROGRESS BAR
+    # 2. BATCH LOOKUP & PROGRESS
     with st.container(border=True):
-        col_lookup, col_pull = st.columns([3, 1])
-        
-        with col_lookup:
-            batch_lookup = st.text_input("Enter Batch Number to Track", placeholder="e.g., TEST-BATCH-001")
+        col_id, col_btn = st.columns([3, 1])
+        with col_id:
+            batch_lookup = st.text_input("Track Batch Number", placeholder="e.g., Batch001")
         
         if batch_lookup:
-            # Filter the main dataframe for this batch
-            batch_data = df[df["Batch_ID"] == batch_lookup]
+            # Query the specific table (Live or Test)
+            res = supabase.table(TARGET_TABLE).select("*").eq("Batch_ID", batch_lookup).execute()
+            batch_data = pd.DataFrame(res.data)
             
             if not batch_data.empty:
-                total_in_batch = len(batch_data)
-                # We define "Completed" as status being 'Full'
+                total = len(batch_data)
                 completed = len(batch_data[batch_data["Status"] == "Full"])
-                progress_percent = int((completed / total_in_batch) * 100)
-
-                st.write(f"**Batch Progress:** {completed} of {total_in_batch} units tested/filled")
-                st.progress(progress_percent / 100)
-                st.caption(f"🏁 {progress_percent}% of this batch is ready.")
-
-                with col_pull:
-                    st.write(" ") # Spacer
-                    if st.button("🔍 Pull IDs", use_container_width=True, help="Click to fill the scan box with all IDs in this batch"):
-                        ids_to_pull = "\n".join(batch_data["Cylinder_ID"].astype(str).tolist())
-                        st.session_state.bulk_ids_val = ids_to_pull
+                prog = completed / total
+                st.write(f"**Progress:** {completed}/{total} units completed")
+                st.progress(prog)
+                
+                with col_btn:
+                    st.write("") # Spacer
+                    if st.button("🔍 Pull IDs", use_container_width=True):
+                        ids = "\n".join(batch_data["Cylinder_ID"].astype(str).tolist())
+                        st.session_state.bulk_ids_val = ids
                         st.rerun()
             else:
-                st.info("No cylinders found with that Batch ID.")
+                st.warning("No data found in this batch.")
 
     st.divider()
 
-    # 2. THE UPDATE FORM
-    with st.expander("📝 Update Selected Batch", expanded=True):
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            # We pre-fill the batch number if the user searched for it above
-            target_batch = st.text_input("Target Batch ID", value=batch_lookup if batch_lookup else "")
-            new_location = st.selectbox("Move To", ["Testing Center", "Gas Company"])
-        
-        with col2:
-            new_owner = st.text_input("Assign to Company/Customer")
-            new_status = st.selectbox("Update Status", ["No Change", "Empty", "Full", "Damaged"])
+    # 3. UPDATE FORM
+    with st.expander("📝 Bulk Update Form", expanded=True):
+        c1, c2 = st.columns(2)
+        with c1:
+            target_batch = st.text_input("Assign to Batch ID", value=batch_lookup)
+            dest = st.selectbox("New Location", ["Testing Center", "Gas Company"])
+        with c2:
+            new_status = st.selectbox("New Status", ["No Change", "Empty", "Full", "Damaged"])
+            new_cust = st.text_input("Update Customer/Owner")
 
-        # Linked to session_state so the 'Pull IDs' button can fill it
-        bulk_input = st.text_area(
-            "Scan IDs (One per line)", 
-            value=st.session_state.bulk_ids_val, 
-            height=250
-        )
+        bulk_input = st.text_area("Cylinder IDs", value=st.session_state.bulk_ids_val, height=200)
 
         if st.button("🚀 Process Bulk Update", use_container_width=True):
             if bulk_input and target_batch:
-                # Clean the input list
-                id_list = [id.strip().upper() for id in bulk_input.replace(',', '\n').split('\n') if id.strip()]
+                # Process text area into a clean list
+                id_list = [i.strip().upper() for i in bulk_input.replace(',', '\n').split('\n') if i.strip()]
                 
-                try:
-                    # Construct the update
-                    update_payload = {
-                        "Current_Location": new_location,
-                        "Batch_ID": target_batch
-                    }
-                    if new_owner:
-                        update_payload["Customer_Name"] = new_owner
-                    if new_status != "No Change":
-                        update_payload["Status"] = new_status
-                    
-                    # Supabase Batch Update
-                    supabase.table("cylinders").update(update_payload).in_("Cylinder_ID", id_list).execute()
-                    
-                    st.success(f"✅ Successfully updated {len(id_list)} cylinders!")
-                    st.balloons()
-                    
-                    # Clear cache so the progress bar updates immediately
-                    st.cache_data.clear()
-                    # Optional: Clear the scan box after success
-                    st.session_state.bulk_ids_val = "" 
-                except Exception as e:
-                    st.error(f"Database Error: {e}")
-            else:
-                st.warning("Please provide a Batch ID and at least one Cylinder ID.")
+                # Build the dynamic payload
+                payload = {"Batch_ID": target_batch, "Current_Location": dest}
+                if new_status != "No Change":
+                    payload["Status"] = new_status
+                if new_cust:
+                    payload["Customer_Name"] = new_cust
 
+                try:
+                    # EXECUTE against the TARGET_TABLE
+                    supabase.table(TARGET_TABLE).update(payload).in_("Cylinder_ID", id_list
 
 
 # 5. RETURN & PENALTY LOG
@@ -318,6 +295,7 @@ footer_text = f"""
 </div>
 """
 st.markdown(footer_text, unsafe_allow_html=True)
+
 
 
 
