@@ -6,6 +6,13 @@ import time
 from st_supabase_connection import SupabaseConnection
 
 # 1. INITIALIZE & DB CONNECTION
+import streamlit as st
+import pandas as pd
+import pytz
+from datetime import datetime
+from st_supabase_connection import SupabaseConnection
+
+# --- 1. INITIALIZE & DB CONNECTION ---
 if "last_refresh" not in st.session_state:
     st.session_state["last_refresh"] = "Initializing..."
 
@@ -14,40 +21,56 @@ conn = st.connection("supabase", type=SupabaseConnection)
 @st.cache_data(ttl=60)
 def load_supabase_data():
     try:
+        # Fetching from the LIVE table for the main dashboard
         response = conn.table("cylinders").select("*").execute()
-        df = pd.DataFrame(response.data)
+        df_raw = pd.DataFrame(response.data)
+        
+        # --- TIMEZONE & DATE CLEANING (From your original code) ---
         ist = pytz.timezone('Asia/Kolkata')
         st.session_state["last_refresh"] = datetime.now(ist).strftime("%I:%M:%S %p")
         
-        if not df.empty:
+        if not df_raw.empty:
             # Ensure Location_PIN is a string for cleaner display
-            df["Location_PIN"] = df["Location_PIN"].astype(str).str.strip()
-            for col in ["Last_Fill_Date", "Last_Test_Date", "Next_Test_Due"]:
-                if col in df.columns:
-                    df[col] = pd.to_datetime(df[col], errors='coerce')
-        return df
+            if "Location_PIN" in df_raw.columns:
+                df_raw["Location_PIN"] = df_raw["Location_PIN"].astype(str).str.strip()
+            
+            # Format date columns so Streamlit recognizes them as dates
+            date_cols = ["Last_Fill_Date", "Last_Test_Date", "Next_Test_Due"]
+            for col in date_cols:
+                if col in df_raw.columns:
+                    df_raw[col] = pd.to_datetime(df_raw[col], errors='coerce')
+        
+        return df_raw
     except Exception as e:
         st.session_state["last_refresh"] = "Refresh Error"
         st.error(f"Database Connection Error: {e}")
         return pd.DataFrame()
 
-df = load_supabase_data()
+# Load the base data
+df_main = load_supabase_data()
 
-# 2. SIDEBAR NAVIGATION
-st.sidebar.title("Cylinder Management 2026")
-st.sidebar.info("Operations - Domestic Gas Testing")
+# --- 2. SIDEBAR GLOBAL FILTERS ---
+st.sidebar.header("📊 Global Filters")
 
-if st.sidebar.button("🔄 Refresh Data Now"):
-    st.cache_data.clear()
-    st.rerun()
+# Display the last refresh time we just calculated
+st.sidebar.caption(f"Last Sync: {st.session_state['last_refresh']}")
 
-page = st.sidebar.selectbox("Select Page", [
-    "Dashboard", 
-    "Cylinder Finder", 
-    "Bulk Operations",  # New Page
-    "Add New Cylinder"
-])
+view_mode = st.sidebar.selectbox(
+    "Select Client Category",
+    ["All Cylinders", "Bulk (Gas Companies)", "Private (Individuals)"]
+)
 
+# Apply filtering logic to the 'df' variable used by the rest of the app
+df = df_main.copy()
+
+if view_mode == "Bulk (Gas Companies)":
+    # Filter: Must have a Batch_ID
+    df = df[df["Batch_ID"].notna() & (df["Batch_ID"].astype(str).str.strip() != "")]
+elif view_mode == "Private (Individuals)":
+    # Filter: Must NOT have a Batch_ID
+    df = df[df["Batch_ID"].isna() | (df["Batch_ID"].astype(str).str.strip() == "")]
+
+st.sidebar.info(f"Viewing {len(df)} {view_mode} units.")
 # 3. DASHBOARD PAGE
 if page == "Dashboard":
     st.title("Live Fleet Dashboard")
@@ -82,6 +105,7 @@ if page == "Dashboard":
         st.caption("**Grey Rows indicate cylinders that have exceeded their safety test date.")
     else:
         st.warning("No data found.")
+
 
 # 4. CYLINDER FINDER (Hardware Scanner Friendly)
 elif page == "Cylinder Finder":
@@ -154,27 +178,25 @@ elif page == "Cylinder Finder":
 
 
 #5a. BULK OPERATIONS (For High Volume 3,000+ Units) ---
-# --- 5. BULK OPERATIONS (Final Dual-Table Version) ---
+# --- 5. BULK OPERATIONS (Test Table Integrated) ---
 elif page == "Bulk Operations":
     st.title("🚛 Bulk Management & Progress")
-
-    # 1. TABLE SWITCHER
-    # Set to "TEST_cylinders" for your 3,000 unit testing, "cylinders" for live ops
+    
+    # 🧪 CONFIGURATION
     TARGET_TABLE = "TEST_cylinders" 
-    
-    st.info(f"📍 Database Target: `{TARGET_TABLE}`")
-    
+    st.warning(f"🧪 CURRENTLY TESTING ON: `{TARGET_TABLE}`")
+
     if "bulk_ids_val" not in st.session_state:
         st.session_state.bulk_ids_val = ""
 
-    # 2. BATCH LOOKUP & PROGRESS
+    # 1. BATCH LOOKUP & PROGRESS
     with st.container(border=True):
         col_id, col_btn = st.columns([3, 1])
         with col_id:
-            batch_lookup = st.text_input("Track Batch Number", placeholder="e.g., Batch001")
+            batch_lookup = st.text_input("Track Batch Number", placeholder="e.g., INITIAL-TEST-LOAD-001")
         
         if batch_lookup:
-            # Query the specific table (Live or Test)
+            # Query the TEST table directly (bypassing the sidebar filter)
             res = conn.table(TARGET_TABLE).select("*").eq("Batch_ID", batch_lookup).execute()
             batch_data = pd.DataFrame(res.data)
             
@@ -182,53 +204,57 @@ elif page == "Bulk Operations":
                 total = len(batch_data)
                 completed = len(batch_data[batch_data["Status"] == "Full"])
                 prog = completed / total
-                st.write(f"**Progress:** {completed}/{total} units completed")
+                
+                st.write(f"**Batch Progress:** {completed} of {total} units completed")
                 st.progress(prog)
                 
                 with col_btn:
-                    st.write("") # Spacer
+                    st.write("") # Alignment spacer
                     if st.button("🔍 Pull IDs", use_container_width=True):
                         ids = "\n".join(batch_data["Cylinder_ID"].astype(str).tolist())
                         st.session_state.bulk_ids_val = ids
                         st.rerun()
             else:
-                st.warning("No data found in this batch.")
+                st.info("No data found for this Batch ID in the Test Table.")
 
     st.divider()
 
-    # 3. UPDATE FORM
+    # 2. UPDATE FORM
     with st.expander("Bulk Update Form", expanded=True):
         c1, c2 = st.columns(2)
         with c1:
-            target_batch = st.text_input("Assign to Batch ID", value=batch_lookup)
+            target_batch = st.text_input("Confirm Batch ID", value=batch_lookup)
             dest = st.selectbox("New Location", ["Testing Center", "Gas Company"])
         with c2:
             new_status = st.selectbox("New Status", ["No Change", "Empty", "Full", "Damaged"])
-            new_cust = st.text_input("Update Customer/Owner")
+            new_owner = st.text_input("Update Customer/Owner")
 
         bulk_input = st.text_area("Cylinder IDs", value=st.session_state.bulk_ids_val, height=200)
 
-        if st.button("Process Bulk Update", use_container_width=True):
+        if st.button("🚀 Process Bulk Update", use_container_width=True):
             if bulk_input and target_batch:
-                # Process text area into a clean list
+                # Clean the ID list
                 id_list = [i.strip().upper() for i in bulk_input.replace(',', '\n').split('\n') if i.strip()]
                 
-                # Build the dynamic payload
+                # Build Update Payload
                 payload = {"Batch_ID": target_batch, "Current_Location": dest}
                 if new_status != "No Change":
                     payload["Status"] = new_status
-                if new_cust:
-                    payload["Customer_Name"] = new_cust
+                if new_owner:
+                    payload["Customer_Name"] = new_owner
 
                 try:
-                    # Your Supabase update code here
-                    supabase.table(TARGET_TABLE).update(payload).in_("Cylinder_ID", id_list).execute()
-                    st.success("Updated successfully!")
-                
-                # THIS IS THE MISSING PART:
+                    # Execute against TARGET_TABLE
+                    conn.table(TARGET_TABLE).update(payload).in_("Cylinder_ID", id_list).execute()
+                    
+                    st.success(f"Updated {len(id_list)} cylinders in {TARGET_TABLE}!")
+                    st.balloons()
+                    st.session_state.bulk_ids_val = "" # Clear box
+                    st.rerun()
                 except Exception as e:
                     st.error(f"Update failed: {e}")
-
+            else:
+                st.error("Please provide both a Batch ID and Cylinder IDs.")
 
 # 5. RETURN & PENALTY LOG
 elif page == "Return & Penalty Log":
@@ -300,6 +326,7 @@ footer_text = f"""
 </div>
 """
 st.markdown(footer_text, unsafe_allow_html=True)
+
 
 
 
