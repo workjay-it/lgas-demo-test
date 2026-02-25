@@ -5,6 +5,8 @@ import time
 from datetime import datetime
 from st_supabase_connection import SupabaseConnection
 
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 # --- 1. INITIALIZE & DB CONNECTION ---
 if "last_refresh" not in st.session_state:
     st.session_state["last_refresh"] = "Initializing..."
@@ -41,6 +43,7 @@ def load_supabase_data():
 df_main = load_supabase_data()
 
 #-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 # --- 2. SIDEBAR GLOBAL FILTERS ---
 st.sidebar.header("📊 Global Filters")
 st.sidebar.caption(f"Last Sync: {st.session_state['last_refresh']}")
@@ -109,6 +112,7 @@ if page == "Dashboard":
         st.caption("**Grey Rows indicate cylinders that have exceeded their safety test date.")
     else:
         st.warning("No data found.")
+        
 #-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
@@ -128,7 +132,6 @@ elif page == "Cylinder Finder":
         st.session_state["s_name_key"] = ""
 
     # 3. Search Inputs with Vertical Alignment
-    # We use vertical_alignment="bottom" to line the button up with the boxes
     colA, colB, colC, colD = st.columns([3, 3, 2, 1], vertical_alignment="bottom")
     
     with colA:
@@ -186,11 +189,11 @@ elif page == "Cylinder Finder":
 #5a. BULK OPERATIONS (For High Volume 3,000+ Units) ---
 # --- 5. BULK OPERATIONS (Test Table Integrated) ---
 elif page == "Bulk Operations":
-    st.title("🚛 Bulk Management & Progress")
+    st.title("Bulk Management & Progress")
     
     # 🧪 CONFIGURATION
     TARGET_TABLE = "TEST_cylinders" 
-    st.warning(f"🧪 CURRENTLY TESTING ON: `{TARGET_TABLE}`")
+    st.warning(f"CURRENTLY TESTING ON: `{TARGET_TABLE}`")
 
     if "bulk_ids_val" not in st.session_state:
         st.session_state.bulk_ids_val = ""
@@ -199,7 +202,7 @@ elif page == "Bulk Operations":
     with st.container(border=True):
         col_id, col_btn = st.columns([3, 1])
         with col_id:
-            batch_lookup = st.text_input("Track Batch Number", placeholder="e.g., INITIAL-TEST-LOAD-001")
+            batch_lookup = st.text_input("Track Batch Number", placeholder="e.g., BATCH001")
         
         if batch_lookup:
             # Query the TEST table directly (bypassing the sidebar filter)
@@ -337,6 +340,7 @@ footer_text = f"""
 </div>
 """
 st.markdown(footer_text, unsafe_allow_html=True)
+
 
 
 
