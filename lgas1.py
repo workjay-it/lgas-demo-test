@@ -112,7 +112,6 @@ if page == "Dashboard":
         
 #-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-
 # 4. CYLINDER FINDER (Hardware Scanner Friendly)
 elif page == "Cylinder Finder":
     st.title("Advanced Cylinder Search")
@@ -233,7 +232,7 @@ elif page == "Bulk Operations":
     st.divider()
 
     # 2. THE BULK UPDATE FORM
-    with st.expander("📝 Bulk Update Form", expanded=True):
+    with st.expander("Bulk Update Form", expanded=True):
         c1, c2 = st.columns(2)
         with c1:
             # We use the 'key' to allow "Pull IDs" to fill this box automatically
@@ -250,7 +249,7 @@ elif page == "Bulk Operations":
         col_process, col_clear = st.columns([3, 1])
         
         with col_process:
-            if st.button("🚀 Process Bulk Update", use_container_width=True, type="primary"):
+            if st.button("Process Bulk Update", use_container_width=True, type="primary"):
                 if bulk_input and target_batch:
                     id_list = [i.strip().upper() for i in bulk_input.replace(',', '\n').split('\n') if i.strip()]
                     payload = {"Batch_ID": target_batch, "Current_Location": dest}
@@ -305,7 +304,7 @@ elif page == "Bulk Operations":
                 st.dataframe(remaining_df[["Cylinder_ID", "Status", "Current_Location"]], 
                              use_container_width=True, hide_index=True)
         else:
-            st.success("✅ Batch Reconciliation Complete: All cylinders accounted for.")
+            st.success("Batch Reconciliation Complete: All cylinders accounted for.")
             
 #-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -382,6 +381,7 @@ footer_text = f"""
 </div>
 """
 st.markdown(footer_text, unsafe_allow_html=True)
+
 
 
 
