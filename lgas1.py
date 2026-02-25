@@ -46,23 +46,20 @@ df_main = load_supabase_data()
 
 # --- 2. SIDEBAR GLOBAL FILTERS ---
 st.sidebar.header("📊 Global Filters")
+
+# Display the last refresh time (useful for debugging connectivity)
 st.sidebar.caption(f"Last Sync: {st.session_state['last_refresh']}")
 
-view_mode = st.sidebar.selectbox(
-    "Select Client Category",
-    ["All Cylinders", "Bulk (Gas Companies)", "Private (Individuals)"]
-)
-
-# Apply filtering logic to the 'df' variable used by the rest of the app
+# TEMPORARY: We define 'df' as the full dataset to bypass the Batch_ID KeyError
+# This ensures Dashboard, Finder, and Inventory pages still have data to show.
 df = df_main.copy()
 
-if view_mode == "Bulk (Gas Companies)":
-    df = df[df["Batch_ID"].notna() & (df["Batch_ID"].astype(str).str.strip() != "")]
-elif view_mode == "Private (Individuals)":
-    df = df[df["Batch_ID"].isna() | (df["Batch_ID"].astype(str).str.strip() == "")]
+# Add a simple status message so you know the filter is off
+st.sidebar.info(f"📋 Total Fleet: {len(df)} units")
+st.sidebar.warning("⚠️ Category Filter: Temporarily Disabled")
 
-st.sidebar.info(f"Viewing {len(df)} {view_mode} units.")
 
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # --- 3. SIDEBAR NAVIGATION (CRITICAL FIX) ---
 # This defines the 'page' variable so you don't get a NameError
 page = st.sidebar.selectbox(
@@ -385,6 +382,7 @@ footer_text = f"""
 </div>
 """
 st.markdown(footer_text, unsafe_allow_html=True)
+
 
 
 
