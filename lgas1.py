@@ -223,9 +223,9 @@ elif page == "Bulk Operations":
                 st.write(f"**Overall Batch Progress:** {completed} of {total} units ({(prog*100):.1f}%)")
                 st.progress(prog)
 
-                # --- NEW: BATCH RECONCILIATION SECTION ---
+                # ---  BATCH RECONCILIATION SECTION ---
                 st.markdown("---")
-                st.subheader("🚩 Batch Reconciliation")
+                st.subheader("Batch Reconciliation")
                 
                 # Filter for cylinders NOT yet returned/completed
                 remaining_df = batch_data[batch_data["Status"] != "Full"]
@@ -241,11 +241,11 @@ elif page == "Bulk Operations":
                     with st.expander("View IDs of Remaining 50+ Cylinders"):
                         st.dataframe(remaining_df[["Cylinder_ID", "Status", "Current_Location"]], use_container_width=True, hide_index=True)
                 else:
-                    st.success("✅ Batch Complete: All 2000+ cylinders have been processed and marked 'Full'.")
+                    st.success("Batch Complete: All cylinders have been processed and marked 'Full'.")
                 
                 with col_btn:
                     st.write("") 
-                    if st.button("🔍 Pull IDs", use_container_width=True):
+                    if st.button("Pull IDs", use_container_width=True):
                         # Logic: Only pull IDs that AREN'T finished yet for the next update
                         ids_to_pull = remaining_df["Cylinder_ID"].astype(str).tolist() if not remaining_df.empty else batch_data["Cylinder_ID"].astype(str).tolist()
                         st.session_state.bulk_ids_val = "\n".join(ids_to_pull)
@@ -379,6 +379,7 @@ footer_text = f"""
 </div>
 """
 st.markdown(footer_text, unsafe_allow_html=True)
+
 
 
 
