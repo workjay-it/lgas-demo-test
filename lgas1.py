@@ -175,7 +175,7 @@ elif page == "Bulk Operations":
         
         if batch_lookup:
             # Query the specific table (Live or Test)
-            res = supabase.table(TARGET_TABLE).select("*").eq("Batch_ID", batch_lookup).execute()
+            res = conn.table(TARGET_TABLE).select("*").eq("Batch_ID", batch_lookup).execute()
             batch_data = pd.DataFrame(res.data)
             
             if not batch_data.empty:
@@ -300,6 +300,7 @@ footer_text = f"""
 </div>
 """
 st.markdown(footer_text, unsafe_allow_html=True)
+
 
 
 
