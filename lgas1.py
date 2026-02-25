@@ -221,8 +221,13 @@ elif page == "Bulk Operations":
                     payload["Customer_Name"] = new_cust
 
                 try:
-                    # EXECUTE against the TARGET_TABLE
-                    supabase.table(TARGET_TABLE).update(payload).in_("Cylinder_ID", id_list)
+                    # Your Supabase update code here
+                    supabase.table(TARGET_TABLE).update(payload).in_("Cylinder_ID", id_list).execute()
+                    st.success("Updated successfully!")
+                
+                # THIS IS THE MISSING PART:
+                except Exception as e:
+                    st.error(f"Update failed: {e}")
 
 
 # 5. RETURN & PENALTY LOG
@@ -295,6 +300,7 @@ footer_text = f"""
 </div>
 """
 st.markdown(footer_text, unsafe_allow_html=True)
+
 
 
 
