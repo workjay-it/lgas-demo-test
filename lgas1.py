@@ -41,10 +41,12 @@ if st.sidebar.button("🔄 Refresh Data Now"):
     st.cache_data.clear()
     st.rerun()
 
-page = st.sidebar.selectbox(
-    "Select Page",
-    ["Dashboard", "Cylinder Finder", "Return & Penalty Log", "Add New Cylinder", "Bulk Operations"]
-)
+page = st.sidebar.selectbox("Select Page", [
+    "Dashboard", 
+    "Cylinder Finder", 
+    "Bulk Operations",  # New Page
+    "Add New Cylinder"
+])
 
 # 3. DASHBOARD PAGE
 if page == "Dashboard":
@@ -278,6 +280,7 @@ footer_text = f"""
 </div>
 """
 st.markdown(footer_text, unsafe_allow_html=True)
+
 
 
 
