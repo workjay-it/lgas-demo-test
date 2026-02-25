@@ -40,6 +40,7 @@ def load_supabase_data():
 # Load the base data
 df_main = load_supabase_data()
 
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # --- 2. SIDEBAR GLOBAL FILTERS ---
 st.sidebar.header("📊 Global Filters")
 st.sidebar.caption(f"Last Sync: {st.session_state['last_refresh']}")
@@ -72,7 +73,7 @@ page = st.sidebar.selectbox(
     ]
 )
 
-
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # 3. DASHBOARD PAGE
 if page == "Dashboard":
@@ -108,6 +109,7 @@ if page == "Dashboard":
         st.caption("**Grey Rows indicate cylinders that have exceeded their safety test date.")
     else:
         st.warning("No data found.")
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
 # 4. CYLINDER FINDER (Hardware Scanner Friendly)
@@ -179,6 +181,7 @@ elif page == "Cylinder Finder":
     st.subheader(f"Results Found: {len(f_df)}")
     st.dataframe(styled_f_df, use_container_width=True, hide_index=True)
 
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 #5a. BULK OPERATIONS (For High Volume 3,000+ Units) ---
 # --- 5. BULK OPERATIONS (Test Table Integrated) ---
@@ -259,6 +262,8 @@ elif page == "Bulk Operations":
             else:
                 st.error("Please provide both a Batch ID and Cylinder IDs.")
 
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 # 5. RETURN & PENALTY LOG
 elif page == "Return & Penalty Log":
     st.title("Cylinder Return Audit")
@@ -278,6 +283,7 @@ elif page == "Return & Penalty Log":
                 except Exception as e:
                     st.error(f"Update failed: {e}")
 
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # 6. ADD NEW CYLINDER (Hardware Scanner Friendly)
 elif page == "Add New Cylinder":
     st.title("Register New Cylinder")
@@ -317,6 +323,8 @@ elif page == "Add New Cylinder":
                     st.rerun()
                 except Exception as e:
                     st.error(f"Database Error: {e}")
+                    
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # 7. FOOTER #JCNaga
 st.markdown("---")
@@ -329,6 +337,7 @@ footer_text = f"""
 </div>
 """
 st.markdown(footer_text, unsafe_allow_html=True)
+
 
 
 
