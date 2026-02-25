@@ -197,7 +197,7 @@ elif page == "Bulk Operations":
     st.divider()
 
     # 3. UPDATE FORM
-    with st.expander("📝 Bulk Update Form", expanded=True):
+    with st.expander("Bulk Update Form", expanded=True):
         c1, c2 = st.columns(2)
         with c1:
             target_batch = st.text_input("Assign to Batch ID", value=batch_lookup)
@@ -208,7 +208,7 @@ elif page == "Bulk Operations":
 
         bulk_input = st.text_area("Cylinder IDs", value=st.session_state.bulk_ids_val, height=200)
 
-        if st.button("🚀 Process Bulk Update", use_container_width=True):
+        if st.button("Process Bulk Update", use_container_width=True):
             if bulk_input and target_batch:
                 # Process text area into a clean list
                 id_list = [i.strip().upper() for i in bulk_input.replace(',', '\n').split('\n') if i.strip()]
@@ -222,7 +222,7 @@ elif page == "Bulk Operations":
 
                 try:
                     # EXECUTE against the TARGET_TABLE
-                    supabase.table(TARGET_TABLE).update(payload).in_("Cylinder_ID", id_list
+                    supabase.table(TARGET_TABLE).update(payload).in_("Cylinder_ID", id_list)
 
 
 # 5. RETURN & PENALTY LOG
@@ -295,6 +295,7 @@ footer_text = f"""
 </div>
 """
 st.markdown(footer_text, unsafe_allow_html=True)
+
 
 
 
