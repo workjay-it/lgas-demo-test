@@ -153,63 +153,92 @@ elif page == "Cylinder Finder":
     st.dataframe(styled_f_df, use_container_width=True, hide_index=True)
     
 #5a. BULK OPERATIONS (For High Volume 3,000+ Units) ---
+# --- 5. BULK OPERATIONS ---
 elif page == "Bulk Operations":
     st.title("🚛 Bulk Intake & Dispatch")
-    st.write("Use this page to move large batches of cylinders between the Testing Center and the Gas Company.")
+    st.markdown("Use this tab to manage high-volume deliveries (e.g., 3,000 units) from Gas Companies.")
 
-    # 1. Summary Metrics for the Bulk Batch
-    if not df.empty:
+    # 1. Initialize Session State for Bulk Inputs
+    if "bulk_ids_val" not in st.session_state:
+        st.session_state.bulk_ids_val = ""
+    if "batch_ref_val" not in st.session_state:
+        st.session_state.batch_ref_val = ""
+
+    # 2. Top-Level Metrics (Quick Overview)
+    if not df.empty and "Batch_ID" in df.columns:
         c1, c2, c3 = st.columns(3)
-        # Ensure 'Current_Location' column exists in your Supabase table
-        center_count = len(df[df["Current_Location"] == "Testing Center"])
-        gas_co_count = len(df[df["Current_Location"] == "Gas Company"])
+        active_batches = df["Batch_ID"].dropna().nunique()
+        bulk_at_center = len(df[(df["Current_Location"] == "Testing Center") & (df["Batch_ID"].notna())])
         
-        c1.metric("At Testing Center", center_count)
-        c2.metric("Returned to Gas Co", gas_co_count)
-        c3.metric("Total Fleet", len(df))
+        c1.metric("Active Bulk Batches", active_batches)
+        c2.metric("Bulk Units at Center", bulk_at_center)
+        c3.metric("Total Database Size", len(df))
 
     st.divider()
 
-    # 2. The Bulk Update Form
-    with st.container():
-        st.subheader("Update Cylinder Locations")
+    # 3. Intake Form
+    with st.expander("📥 Register New Bulk Intake / Dispatch", expanded=True):
+        col_form1, col_form2 = st.columns(2)
+        with col_form1:
+            batch_ref = st.text_input("Batch/Consignment Number", 
+                                    placeholder="e.g., BATCH-2024-BPCL-01", 
+                                    key="batch_ref_val")
+            gas_co = st.text_input("Gas Company / Customer Name")
         
-        # Selection for where the cylinders are going
-        destination = st.selectbox("Move selected cylinders to:", ["Testing Center", "Gas Company"])
+        with col_form2:
+            destination = st.selectbox("Current Location", ["Testing Center", "Gas Company"])
+            new_status = st.selectbox("Update Status To", ["Empty", "Full", "Damaged", "No Change"])
+
+        bulk_ids = st.text_area("Scan IDs (One per line or comma-separated)", 
+                               height=200, 
+                               key="bulk_ids_val")
+
+        # Action Buttons
+        btn_col1, btn_col2 = st.columns([1, 4])
+        with btn_col1:
+            if st.button("🗑️ Clear"):
+                st.session_state.bulk_ids_val = ""
+                st.session_state.batch_ref_val = ""
+                st.rerun()
         
-        # Status update (Optional: mark as Empty or Damaged during move)
-        new_status = st.selectbox("Set new status as:", ["No Change", "Full", "Empty", "Damaged"])
-
-        # Large text area for bulk scanning
-        bulk_ids = st.text_area("Scan or Paste Cylinder IDs (One per line or comma-separated)", height=250)
-
-        if st.button(f"Confirm Bulk Move to {destination}", use_container_width=True):
-            if bulk_ids:
-                # Process the input into a clean list
-                id_list = [id.strip().upper() for id in bulk_ids.replace(',', '\n').split('\n') if id.strip()]
-                
-                try:
-                    # Prepare the update data
-                    update_data = {"Current_Location": destination}
+        with btn_col2:
+            if st.button("🚀 Process Bulk Update", use_container_width=True):
+                if bulk_ids and batch_ref:
+                    id_list = [i.strip().upper() for i in bulk_ids.replace(',', '\n').split('\n') if i.strip()]
+                    
+                    # Prepare update dictionary
+                    update_payload = {
+                        "Current_Location": destination,
+                        "Batch_ID": batch_ref,
+                        "Customer_Name": gas_co if gas_co else "Bulk Delivery"
+                    }
                     if new_status != "No Change":
-                        update_data["Status"] = new_status
-                    
-                    # THE BATCH UPDATE: Using the .in_() filter for high performance
-                    response = supabase.table("cylinders").update(update_data).in_("Cylinder_ID", id_list).execute()
-                    
-                    st.success(f"✅ Successfully moved {len(id_list)} cylinders to {destination}!")
-                    st.balloons()
-                    # Refresh the local dataframe cache
-                    st.cache_data.clear() 
-                except Exception as e:
-                    st.error(f"Error: {e}")
-            else:
-                st.warning("Please enter at least one Cylinder ID.")
+                        update_payload["Status"] = new_status
 
-    # 3. Quick Table View of Dispatched Units
-    if st.checkbox("Show current location list"):
-        st.dataframe(df[["Cylinder_ID", "Customer_Name", "Status", "Current_Location"]], 
-                     use_container_width=True, hide_index=True)
+                    try:
+                        # Batch Update Operation
+                        supabase.table("cylinders").update(update_payload).in_("Cylinder_ID", id_list).execute()
+                        st.success(f"✅ Successfully updated {len(id_list)} cylinders under Batch {batch_ref}!")
+                        st.balloons()
+                        st.cache_data.clear() # Force app to pull fresh data
+                    except Exception as e:
+                        st.error(f"Database Error: {e}")
+                else:
+                    st.warning("Please provide both Batch Number and Cylinder IDs.")
+
+    # 4. Batch Browser
+    st.divider()
+    st.subheader("📦 Search by Batch")
+    if "Batch_ID" in df.columns:
+        unique_batches = df["Batch_ID"].dropna().unique()
+        selected_batch = st.selectbox("Select a Batch to view details", ["None"] + list(unique_batches))
+        
+        if selected_batch != "None":
+            batch_df = df[df["Batch_ID"] == selected_batch]
+            st.write(f"Showing **{len(batch_df)}** cylinders for batch **{selected_batch}**")
+            st.dataframe(batch_df[["Cylinder_ID", "Status", "Current_Location", "Next_Test_Due"]], 
+                         use_container_width=True, hide_index=True)
+            
 # 5. RETURN & PENALTY LOG
 elif page == "Return & Penalty Log":
     st.title("Cylinder Return Audit")
@@ -280,6 +309,7 @@ footer_text = f"""
 </div>
 """
 st.markdown(footer_text, unsafe_allow_html=True)
+
 
 
 
