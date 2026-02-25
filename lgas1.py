@@ -156,7 +156,7 @@ elif page == "Cylinder Finder":
 #5a. BULK OPERATIONS (For High Volume 3,000+ Units) ---
 # --- 5. BULK OPERATIONS (Final Integrated Version) ---
 elif page == "Bulk Operations":
-    st.title("🚛 Bulk Management & Progress")
+    st.title("Bulk Management & Progress")
     st.markdown("Track batch completion and perform high-volume updates.")
 
     # Initialize session state for the text area if it doesn't exist
@@ -168,7 +168,7 @@ elif page == "Bulk Operations":
         col_lookup, col_pull = st.columns([3, 1])
         
         with col_lookup:
-            batch_lookup = st.text_input("Enter Batch Number to Track", placeholder="e.g., Batch001")
+            batch_lookup = st.text_input("Enter Batch Number to Track", placeholder="e.g., TEST-BATCH-001")
         
         if batch_lookup:
             # Filter the main dataframe for this batch
@@ -318,6 +318,7 @@ footer_text = f"""
 </div>
 """
 st.markdown(footer_text, unsafe_allow_html=True)
+
 
 
 
