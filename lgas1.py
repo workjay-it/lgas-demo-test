@@ -188,11 +188,11 @@ elif page == "Cylinder Finder":
 
 # --- 5. BULK OPERATIONS (Final with Reconciliation & Master Reset) ---
 elif page == "Bulk Operations":
-    st.title("Bulk Management & Progress")
+    st.title("🚛 Bulk Management & Progress")
     
-    # CONFIGURATION
+    # 🧪 CONFIGURATION
     TARGET_TABLE = "TEST_cylinders" 
-    st.warning(f" CURRENTLY TESTING ON: `{TARGET_TABLE}`")
+    st.warning(f"🧪 CURRENTLY TESTING ON: `{TARGET_TABLE}`")
 
     # Initialize session state for all form fields if they don't exist
     if "bulk_ids_val" not in st.session_state:
@@ -289,7 +289,20 @@ elif page == "Bulk Operations":
                         st.balloons()
                         st.cache_data.clear()
                     except Exception as e:
-                        st.error(f"Update failed: {
+                        st.error(f"Update failed: {e}")
+                else:
+                    st.error("Please provide both a Batch ID and Cylinder IDs.")
+
+        with col_clear:
+            with st.popover("🧹 Reset Form", use_container_width=True):
+                st.error("This will clear ALL fields and the ID list. Are you sure?")
+                if st.button("Confirm Master Reset", type="primary", use_container_width=True):
+                    st.session_state.bulk_ids_val = ""
+                    st.session_state.batch_search_val = ""
+                    for key in ["batch_lookup_input", "confirm_batch", "dest_select", "status_select", "owner_input"]:
+                        if key in st.session_state:
+                            del st.session_state[key]
+                    st.rerun()
 
 #-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -366,6 +379,7 @@ footer_text = f"""
 </div>
 """
 st.markdown(footer_text, unsafe_allow_html=True)
+
 
 
 
