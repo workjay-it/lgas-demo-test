@@ -186,7 +186,7 @@ elif page == "Cylinder Finder":
 
 #-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-# --- 5. BULK OPERATIONS  ---
+# --- 5. BULK OPERATIONS (Full Automation + Reconciliation) ---
 elif page == "Bulk Operations":
     st.title("🚛 Bulk Management & Progress")
     
@@ -194,13 +194,13 @@ elif page == "Bulk Operations":
     TARGET_TABLE = "TEST_cylinders" 
     st.warning(f"🧪 CURRENTLY TESTING ON: `{TARGET_TABLE}`")
 
-    # Initialize session state
+    # Initialize session state for automation
     if "bulk_ids_val" not in st.session_state:
         st.session_state.bulk_ids_val = ""
     if "batch_search_val" not in st.session_state:
         st.session_state.batch_search_val = ""
 
-    # 1. BATCH LOOKUP (Search Bar Only)
+    # 1. BATCH LOOKUP SECTION
     with st.container(border=True):
         col_id, col_btn = st.columns([3, 1])
         with col_id:
@@ -211,7 +211,6 @@ elif page == "Bulk Operations":
                 key="batch_lookup_input"
             )
         
-        # Prepare batch data for the whole page
         batch_data = pd.DataFrame()
         if batch_lookup:
             res = conn.table(TARGET_TABLE).select("*").eq("Batch_ID", batch_lookup).execute()
@@ -221,22 +220,27 @@ elif page == "Bulk Operations":
                 with col_btn:
                     st.write("") 
                     if st.button("🔍 Pull IDs", use_container_width=True):
-                        # Filter to only pull IDs that aren't 'Full' yet
+                        # Filter to only pull IDs that aren't 'Full' yet (The remaining units)
                         remaining = batch_data[batch_data["Status"] != "Full"]
                         ids_to_pull = remaining["Cylinder_ID"].astype(str).tolist() if not remaining.empty else batch_data["Cylinder_ID"].astype(str).tolist()
+                        
+                        # --- THE AUTOMATION FIX: Explicitly set session state keys ---
                         st.session_state.bulk_ids_val = "\n".join(ids_to_pull)
                         st.session_state.batch_search_val = batch_lookup
+                        st.session_state["confirm_batch"] = batch_lookup # Auto-fills Confirm Batch ID box
+                        
                         st.rerun()
             else:
                 st.info("No data found for this Batch ID.")
 
     st.divider()
 
-    # 2. THE BULK UPDATE FORM (Now placed higher)
+    # 2. THE BULK UPDATE FORM
     with st.expander("📝 Bulk Update Form", expanded=True):
         c1, c2 = st.columns(2)
         with c1:
-            target_batch = st.text_input("Confirm Batch ID", value=batch_lookup, key="confirm_batch")
+            # We use the 'key' to allow "Pull IDs" to fill this box automatically
+            target_batch = st.text_input("Confirm Batch ID", key="confirm_batch")
             dest = st.selectbox("New Location", ["Testing Center", "Gas Company"], key="dest_select")
         with c2:
             new_status = st.selectbox("New Status", ["No Change", "Empty", "Full", "Damaged"], key="status_select")
@@ -244,7 +248,7 @@ elif page == "Bulk Operations":
 
         bulk_input = st.text_area("Cylinder IDs to Update", value=st.session_state.bulk_ids_val, height=200)
 
-        # Button Section
+        # --- Button Actions ---
         st.write("---")
         col_process, col_clear = st.columns([3, 1])
         
@@ -260,23 +264,27 @@ elif page == "Bulk Operations":
 
                     try:
                         conn.table(TARGET_TABLE).update(payload).in_("Cylinder_ID", id_list).execute()
-                        st.success(f"✅ Updated {len(id_list)} cylinders!")
+                        st.success(f"✅ Successfully updated {len(id_list)} cylinders!")
                         st.balloons()
-                        st.cache_data.clear()
+                        st.cache_data.clear() # Refresh progress bar data
                     except Exception as e:
                         st.error(f"Update failed: {e}")
+                else:
+                    st.error("Please provide both a Batch ID and Cylinder IDs.")
 
         with col_clear:
             with st.popover("🧹 Reset Form", use_container_width=True):
-                st.error("Clear all fields?")
-                if st.button("Confirm Reset", use_container_width=True):
+                st.error("This will clear ALL fields. Are you sure?")
+                if st.button("Confirm Master Reset", type="primary", use_container_width=True):
+                    # Clear session states
                     st.session_state.bulk_ids_val = ""
                     st.session_state.batch_search_val = ""
-                    for k in ["batch_lookup_input", "confirm_batch", "dest_select", "status_select", "owner_input"]:
-                        if k in st.session_state: del st.session_state[k]
+                    # Delete widget keys to reset to defaults
+                    for key in ["batch_lookup_input", "confirm_batch", "dest_select", "status_select", "owner_input"]:
+                        if key in st.session_state: del st.session_state[key]
                     st.rerun()
 
-    # 3. BATCH RECONCILIATION SECTION (Moved to Bottom)
+    # 3. BATCH RECONCILIATION SECTION (At the bottom)
     if not batch_data.empty:
         st.divider()
         st.subheader("🚩 Batch Reconciliation Status")
@@ -285,11 +293,10 @@ elif page == "Bulk Operations":
         completed = len(batch_data[batch_data["Status"] == "Full"])
         prog = completed / total
         
-        # Progress Bar
         st.write(f"**Overall Progress:** {completed} of {total} units ({(prog*100):.1f}%)")
         st.progress(prog)
 
-        # Metrics
+        # Breakdown Metrics
         remaining_df = batch_data[batch_data["Status"] != "Full"]
         m1, m2, m3 = st.columns(3)
         m1.metric("Processed (Full)", completed)
@@ -297,12 +304,12 @@ elif page == "Bulk Operations":
         m3.metric("Damaged/Rejected", len(remaining_df[remaining_df["Status"] == "Damaged"]))
         
         if not remaining_df.empty:
-            with st.expander(f"View IDs of the {len(remaining_df)} Remaining Units"):
+            with st.expander(f"View IDs of the {len(remaining_df)} Pending Units"):
                 st.dataframe(remaining_df[["Cylinder_ID", "Status", "Current_Location"]], 
                              use_container_width=True, hide_index=True)
         else:
-            st.success("✅ Reconciliation Complete: All cylinders accounted for.")
-
+            st.success("✅ Batch Reconciliation Complete: All cylinders accounted for.")
+            
 #-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # 5. RETURN & PENALTY LOG
@@ -378,6 +385,7 @@ footer_text = f"""
 </div>
 """
 st.markdown(footer_text, unsafe_allow_html=True)
+
 
 
 
