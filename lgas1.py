@@ -1,14 +1,7 @@
 import streamlit as st
 import pandas as pd
-from datetime import datetime
 import pytz
 import time
-from st_supabase_connection import SupabaseConnection
-
-# 1. INITIALIZE & DB CONNECTION
-import streamlit as st
-import pandas as pd
-import pytz
 from datetime import datetime
 from st_supabase_connection import SupabaseConnection
 
@@ -25,16 +18,14 @@ def load_supabase_data():
         response = conn.table("cylinders").select("*").execute()
         df_raw = pd.DataFrame(response.data)
         
-        # --- TIMEZONE & DATE CLEANING (From your original code) ---
+        # --- TIMEZONE & DATE CLEANING ---
         ist = pytz.timezone('Asia/Kolkata')
         st.session_state["last_refresh"] = datetime.now(ist).strftime("%I:%M:%S %p")
         
         if not df_raw.empty:
-            # Ensure Location_PIN is a string for cleaner display
             if "Location_PIN" in df_raw.columns:
                 df_raw["Location_PIN"] = df_raw["Location_PIN"].astype(str).str.strip()
             
-            # Format date columns so Streamlit recognizes them as dates
             date_cols = ["Last_Fill_Date", "Last_Test_Date", "Next_Test_Due"]
             for col in date_cols:
                 if col in df_raw.columns:
@@ -51,8 +42,6 @@ df_main = load_supabase_data()
 
 # --- 2. SIDEBAR GLOBAL FILTERS ---
 st.sidebar.header("📊 Global Filters")
-
-# Display the last refresh time we just calculated
 st.sidebar.caption(f"Last Sync: {st.session_state['last_refresh']}")
 
 view_mode = st.sidebar.selectbox(
@@ -64,13 +53,27 @@ view_mode = st.sidebar.selectbox(
 df = df_main.copy()
 
 if view_mode == "Bulk (Gas Companies)":
-    # Filter: Must have a Batch_ID
     df = df[df["Batch_ID"].notna() & (df["Batch_ID"].astype(str).str.strip() != "")]
 elif view_mode == "Private (Individuals)":
-    # Filter: Must NOT have a Batch_ID
     df = df[df["Batch_ID"].isna() | (df["Batch_ID"].astype(str).str.strip() == "")]
 
 st.sidebar.info(f"Viewing {len(df)} {view_mode} units.")
+
+# --- 3. SIDEBAR NAVIGATION (CRITICAL FIX) ---
+# This defines the 'page' variable so you don't get a NameError
+page = st.sidebar.selectbox(
+    "Menu", 
+    [
+        "Dashboard", 
+        "Cylinder Finder", 
+        "Bulk Operations", 
+        "Return & Penalty Log", 
+        "Add New Cylinder"
+    ]
+)
+
+
+
 # 3. DASHBOARD PAGE
 if page == "Dashboard":
     st.title("Live Fleet Dashboard")
@@ -326,6 +329,7 @@ footer_text = f"""
 </div>
 """
 st.markdown(footer_text, unsafe_allow_html=True)
+
 
 
 
