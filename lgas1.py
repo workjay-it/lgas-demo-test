@@ -186,13 +186,13 @@ elif page == "Cylinder Finder":
 
 #-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-# --- 5. BULK OPERATIONS (Full Automation + Reconciliation) ---
+# --- 5. BULK OPERATIONS  ---
 elif page == "Bulk Operations":
     st.title("🚛 Bulk Management & Progress")
     
     # 🧪 CONFIGURATION
     TARGET_TABLE = "TEST_cylinders" 
-    st.warning(f"🧪 CURRENTLY TESTING ON: `{TARGET_TABLE}`")
+    st.warning(f"CURRENTLY TESTING ON: `{TARGET_TABLE}`")
 
     # Initialize session state for automation
     if "bulk_ids_val" not in st.session_state:
@@ -219,7 +219,7 @@ elif page == "Bulk Operations":
             if not batch_data.empty:
                 with col_btn:
                     st.write("") 
-                    if st.button("🔍 Pull IDs", use_container_width=True):
+                    if st.button("Retrieve info", use_container_width=True):
                         # Filter to only pull IDs that aren't 'Full' yet (The remaining units)
                         remaining = batch_data[batch_data["Status"] != "Full"]
                         ids_to_pull = remaining["Cylinder_ID"].astype(str).tolist() if not remaining.empty else batch_data["Cylinder_ID"].astype(str).tolist()
@@ -385,6 +385,7 @@ footer_text = f"""
 </div>
 """
 st.markdown(footer_text, unsafe_allow_html=True)
+
 
 
 
