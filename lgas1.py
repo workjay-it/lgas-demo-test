@@ -187,25 +187,26 @@ elif page == "Cylinder Finder":
 #-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 #5a. BULK OPERATIONS (For High Volume 3,000+ Units) ---
-# --- 5. BULK OPERATIONS (Test Table Integrated) ---
+# --- 5. BULK OPERATIONS (Final with Reset Button) ---
 elif page == "Bulk Operations":
-    st.title("Bulk Management & Progress")
+    st.title("🚛 Bulk Management & Progress")
     
     # 🧪 CONFIGURATION
     TARGET_TABLE = "TEST_cylinders" 
-    st.warning(f"CURRENTLY TESTING ON: `{TARGET_TABLE}`")
+    st.warning(f"🧪 CURRENTLY TESTING ON: `{TARGET_TABLE}`")
 
+    # Ensure session state exists for the ID box
     if "bulk_ids_val" not in st.session_state:
         st.session_state.bulk_ids_val = ""
 
-    # 1. BATCH LOOKUP & PROGRESS
+    # 1. BATCH LOOKUP & PROGRESS SECTION
     with st.container(border=True):
         col_id, col_btn = st.columns([3, 1])
         with col_id:
             batch_lookup = st.text_input("Track Batch Number", placeholder="e.g., BATCH001")
         
         if batch_lookup:
-            # Query the TEST table directly (bypassing the sidebar filter)
+            # Query the TEST table directly
             res = conn.table(TARGET_TABLE).select("*").eq("Batch_ID", batch_lookup).execute()
             batch_data = pd.DataFrame(res.data)
             
@@ -220,6 +221,7 @@ elif page == "Bulk Operations":
                 with col_btn:
                     st.write("") # Alignment spacer
                     if st.button("🔍 Pull IDs", use_container_width=True):
+                        # Fill the session state with IDs from this batch
                         ids = "\n".join(batch_data["Cylinder_ID"].astype(str).tolist())
                         st.session_state.bulk_ids_val = ids
                         st.rerun()
@@ -228,8 +230,8 @@ elif page == "Bulk Operations":
 
     st.divider()
 
-    # 2. UPDATE FORM
-    with st.expander("Bulk Update Form", expanded=True):
+    # 2. THE BULK UPDATE FORM
+    with st.expander("📝 Bulk Update Form", expanded=True):
         c1, c2 = st.columns(2)
         with c1:
             target_batch = st.text_input("Confirm Batch ID", value=batch_lookup)
@@ -238,32 +240,47 @@ elif page == "Bulk Operations":
             new_status = st.selectbox("New Status", ["No Change", "Empty", "Full", "Damaged"])
             new_owner = st.text_input("Update Customer/Owner")
 
-        bulk_input = st.text_area("Cylinder IDs", value=st.session_state.bulk_ids_val, height=200)
+        # Text area linked to session state
+        bulk_input = st.text_area("Cylinder IDs", value=st.session_state.bulk_ids_val, height=250)
 
-        if st.button("🚀 Process Bulk Update", use_container_width=True):
-            if bulk_input and target_batch:
-                # Clean the ID list
-                id_list = [i.strip().upper() for i in bulk_input.replace(',', '\n').split('\n') if i.strip()]
-                
-                # Build Update Payload
-                payload = {"Batch_ID": target_batch, "Current_Location": dest}
-                if new_status != "No Change":
-                    payload["Status"] = new_status
-                if new_owner:
-                    payload["Customer_Name"] = new_owner
-
-                try:
-                    # Execute against TARGET_TABLE
-                    conn.table(TARGET_TABLE).update(payload).in_("Cylinder_ID", id_list).execute()
+        # --- BUTTON SECTION AT BOTTOM ---
+        st.write("---") # Visual separator
+        col_process, col_clear = st.columns([3, 1])
+        
+        with col_process:
+            if st.button("🚀 Process Bulk Update", use_container_width=True, type="primary"):
+                if bulk_input and target_batch:
+                    # Clean the ID list from the text area
+                    id_list = [i.strip().upper() for i in bulk_input.replace(',', '\n').split('\n') if i.strip()]
                     
-                    st.success(f"Updated {len(id_list)} cylinders in {TARGET_TABLE}!")
-                    st.balloons()
-                    st.session_state.bulk_ids_val = "" # Clear box
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Update failed: {e}")
-            else:
-                st.error("Please provide both a Batch ID and Cylinder IDs.")
+                    # Build Update Payload
+                    payload = {"Batch_ID": target_batch, "Current_Location": dest}
+                    if new_status != "No Change":
+                        payload["Status"] = new_status
+                    if new_owner:
+                        payload["Customer_Name"] = new_owner
+
+                    try:
+                        # Execute the bulk update in Supabase
+                        conn.table(TARGET_TABLE).update(payload).in_("Cylinder_ID", id_list).execute()
+                        
+                        st.success(f"✅ Successfully updated {len(id_list)} cylinders!")
+                        st.balloons()
+                        
+                        # Refresh data and stay on page
+                        st.cache_data.clear()
+                        # Optional: st.session_state.bulk_ids_val = "" # Uncomment to auto-clear
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Update failed: {e}")
+                else:
+                    st.error("Please ensure Batch ID and Cylinder IDs are provided.")
+
+        with col_clear:
+            # The Reset Button logic
+            if st.button("🧹 Reset Form", use_container_width=True):
+                st.session_state.bulk_ids_val = ""
+                st.rerun()
 
 #-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -340,6 +357,7 @@ footer_text = f"""
 </div>
 """
 st.markdown(footer_text, unsafe_allow_html=True)
+
 
 
 
