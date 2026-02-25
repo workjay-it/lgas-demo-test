@@ -55,8 +55,8 @@ st.sidebar.caption(f"Last Sync: {st.session_state['last_refresh']}")
 df = df_main.copy()
 
 # Add a simple status message so you know the filter is off
-st.sidebar.info(f"📋 Total Fleet: {len(df)} units")
-st.sidebar.warning("⚠️ Category Filter: Temporarily Disabled")
+st.sidebar.info(f"Total Fleet: {len(df)} units")
+st.sidebar.warning("Category Filter: Temporarily Disabled")
 
 
 #-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -382,6 +382,7 @@ footer_text = f"""
 </div>
 """
 st.markdown(footer_text, unsafe_allow_html=True)
+
 
 
 
